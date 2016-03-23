@@ -7,7 +7,7 @@
 
 struct threadpool* threadpool_init(int thread_num, int queue_max_num)
 {
-	signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, SIG_IGN);	//忽略socket clientu关闭写端时发来关闭进程的信号
 	struct threadpool *pool = NULL;
 	do
 	{
@@ -51,9 +51,6 @@ struct threadpool* threadpool_init(int thread_num, int queue_max_num)
 		pool->queue_close = 0;
 		pool->pool_close = 0;
 		int i;
-//		pthread_attr_t std;
-//		pthread_attr_init(&std);
-//		pthread_attr_setdetachstate(&std,PTHREAD_CREATE_DETACHED);
 		for(i = 0; i < pool->thread_num; ++i)
 		{
 			pthread_create(&pool->pthreads[i],NULL,threadpool_function,(void *)pool);
@@ -70,7 +67,7 @@ int threadpool_add_job(struct threadpool* pool, void* (*callback_function)(void 
 {
 	assert(pool != NULL);
 	assert(callback_function != NULL);
-	assert(arg == NULL);
+	assert(arg != NULL);
 
 	pthread_mutex_lock(&(pool->mutex));
 	while((pool->queue_cur_num == pool->queue_max_num) && !(pool->queue_close || pool->pool_close))
@@ -107,7 +104,6 @@ int threadpool_add_job(struct threadpool* pool, void* (*callback_function)(void 
 
 void* threadpool_function(void* arg)
 {
-	signal(SIGPIPE, SIG_IGN);
 	struct threadpool *pool = (struct threadpool*)arg;
 	struct job *pjob = NULL;
 	while(1)
